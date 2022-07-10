@@ -14,6 +14,13 @@ public class MovingSphere : MonoBehaviour {
 
     Rigidbody body;
 
+    bool desiredJump;
+
+    [SerializeField, Range(0f, 10f)]
+    float jumpHeight = 2f;
+
+    bool onGround;
+
     void Awake()
     {
         body = GetComponent<Rigidbody>();    
@@ -27,17 +34,42 @@ public class MovingSphere : MonoBehaviour {
 
         desiredVelocity =
             new Vector3(playerInput.x, 0f, playerInput.y) * maxSpeed;
+
+        desiredJump |= Input.GetButtonDown("Jump");
     }
 
     void FixedUpdate()
     {
         velocity = body.velocity;
+
         float maxSpeedChange = maxAcceleration * Time.deltaTime;
+
         velocity.x =
             Mathf.MoveTowards(velocity.x, desiredVelocity.x, maxSpeedChange);
         velocity.z =
             Mathf.MoveTowards(velocity.z, desiredVelocity.z, maxSpeedChange);
-        body.velocity = velocity;
 
+        if (desiredJump) {
+            desiredJump = false;
+            Jump();
+        }
+
+        body.velocity = velocity;
+        onGround = false;
     }
+
+    void OnCollisionEnter () {
+        onGround = true;
+    }
+
+    void OnCollisionStay () {
+        onGround = true;
+    }
+
+    void Jump () {
+        if (onGround) {
+            velocity.y += Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
+        }
+    }
+
 }
