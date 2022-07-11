@@ -24,7 +24,9 @@ public class MovingSphere : MonoBehaviour {
 
     int jumpPhase;
 
-    bool onGround;
+    int groundContactCount;
+
+    bool OnGround => groundContactCount > 0;
 
     Vector3 contactNormal;
 
@@ -53,6 +55,11 @@ public class MovingSphere : MonoBehaviour {
             new Vector3(playerInput.x, 0f, playerInput.y) * maxSpeed;
 
         desiredJump |= Input.GetButtonDown("Jump");
+
+        // Change sphere color based on number of contact points
+        //GetComponent<Renderer>().material.SetColor(
+        //    "_Color", Color.white * (groundContactCount)
+        //);
     }
 
     void FixedUpdate()
@@ -70,15 +77,17 @@ public class MovingSphere : MonoBehaviour {
     }
 
     void ClearState () {
-        onGround = false;
+        groundContactCount = 0;
         contactNormal = Vector3.zero;
     }
 
     void UpdateState () {
         velocity = body.velocity;
-        if (onGround) {
+        if (OnGround) {
             jumpPhase = 0;
-            contactNormal.Normalize();
+            if (groundContactCount > 1) {
+                contactNormal.Normalize();
+            }
         } else {
             contactNormal = Vector3.up;
         }
@@ -96,7 +105,7 @@ public class MovingSphere : MonoBehaviour {
         for (int i = 0; i < collision.contactCount; i++) {
             Vector3 normal = collision.GetContact(i).normal;
             if (normal.y >= minGroundDotProduct) {
-                onGround = true;
+                groundContactCount += 1;
                 contactNormal += normal;
             }
         }
@@ -113,7 +122,7 @@ public class MovingSphere : MonoBehaviour {
         float currentX = Vector3.Dot(velocity, xAxis);
         float currentZ = Vector3.Dot(velocity, zAxis);
 
-        float acceleration = onGround ? maxAcceleration : maxAirAcceleration;
+        float acceleration = OnGround ? maxAcceleration : maxAirAcceleration;
         float maxSpeedChange = acceleration * Time.deltaTime;
 
         float newX =
@@ -125,7 +134,7 @@ public class MovingSphere : MonoBehaviour {
     }
 
     void Jump () {
-        if (onGround || jumpPhase < maxAirJumps) {
+        if (OnGround || jumpPhase < maxAirJumps) {
             jumpPhase += 1;
             float jumpSpeed = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
             float alignedSpeed = Vector3.Dot(velocity, contactNormal);
